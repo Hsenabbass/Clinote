@@ -1,0 +1,14 @@
+# Flutter/Dart/Pub
+.dart_tool/
+.packages
+.pub/
+.pub-cache/
+build/
+.flutter-plugins
+.flutter-plugins-dependencies
+
+# macOS
+.DS_Store
+*.xcuserstate
+*.xcuserdata/
+DerivedData/

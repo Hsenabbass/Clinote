@@ -1,0 +1,29 @@
+name: mama
+description: Offline desktop patient list (Flutter + SQLite). Local-only, with backup/restore.
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.4.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # Local DB
+  sqflite_common_ffi: ^2.3.4+6
+  path: ^1.9.0
+  path_provider: ^2.1.5
+
+  # UX / Utilities
+  intl: ^0.19.0
+  file_picker: ^8.1.4
+  shared_preferences: ^2.3.2
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+
+flutter:
+  uses-material-design: true
