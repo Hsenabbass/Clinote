@@ -87,29 +87,63 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _addOrEdit({Patient? existing}) async {
+    final defaultNumber = existing == null ? await _repo.nextPatientNumber() : existing.patientNumber;
+    if (!mounted) return;
     final result = await showDialog<PatientFormResult>(
       context: context,
-      builder: (_) => PatientFormDialog(existing: existing),
+      builder: (_) => PatientFormDialog(existing: existing, defaultPatientNumber: defaultNumber),
     );
     if (result == null) return;
 
-    if (existing == null) {
-      await _repo.create(result.patient);
-    } else {
-      await _repo.update(result.patient.copyWith(id: existing.id));
+    final p = result.patient;
+    if (p.patientNumber != null && p.patientNumber! < 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Patient number must be ≥ 0.')),
+      );
+      return;
     }
-    await _refresh();
+    if (p.patientNumber != null) {
+      final available = await _repo.isPatientNumberAvailable(
+        p.patientNumber,
+        excludeId: existing?.id,
+      );
+      if (!available) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Patient number already exists.')),
+        );
+        return;
+      }
+    }
+
+    try {
+      if (existing == null) {
+        await _repo.create(p);
+      } else {
+        await _repo.update(p.copyWith(id: existing.id));
+      }
+      await _refresh();
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Save failed: $e')),
+      );
+    }
   }
 
   Future<void> _deleteSelected() async {
     final id = _selectedId;
     if (id == null) return;
 
+    final patientNumber = _selectedPatient?.patientNumber;
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Delete patient?'),
-        content: Text('This will permanently remove patient #$id.'),
+        content: Text(
+          patientNumber == null
+              ? 'This will permanently remove this patient.'
+              : 'This will permanently remove patient #$patientNumber.',
+        ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
           FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Delete')),
@@ -544,7 +578,8 @@ class _MainHeader extends StatelessWidget {
                 Text('Patient table', style: Theme.of(context).textTheme.titleMedium),
                 const SizedBox(height: 2),
                 Text(
-                  '$count record${count == 1 ? "" : "s"} • ${selected == null ? "No selection" : "Selected #${selected!.id}"}',
+                  '$count record${count == 1 ? "" : "s"} • '
+                  '${selected == null ? "No selection" : _selectedLabel(selected!)}',
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
               ],
@@ -691,7 +726,7 @@ class _DetailsPanel extends StatelessWidget {
           children: [
             Expanded(
               child: Text(
-                'Patient #${p.id} • $displayName',
+                '${_patientLabel(p)} • $displayName',
                 style: Theme.of(context).textTheme.titleMedium,
                 overflow: TextOverflow.ellipsis,
               ),
@@ -849,7 +884,7 @@ class _PatientTable extends StatelessWidget {
                           selected: selectedId == p.id,
                           onSelectChanged: (_) => onSelect(p.id),
                           cells: [
-                            DataCell(Text('${p.id}')),
+                            DataCell(Text(_idText(p.patientNumber))),
                             DataCell(Text(_cellText(p.firstName))),
                             DataCell(Text(_cellText(p.fatherName))),
                             DataCell(Text(_cellText(p.lastName))),
@@ -888,4 +923,16 @@ class _Header extends StatelessWidget {
       ],
     );
   }
+}
+
+String _idText(int? value) => value == null ? '—' : value.toString();
+
+String _patientLabel(Patient p) {
+  final n = p.patientNumber;
+  return n == null ? 'Patient' : 'Patient #$n';
+}
+
+String _selectedLabel(Patient p) {
+  final n = p.patientNumber;
+  return n == null ? 'Selected' : 'Selected #$n';
 }

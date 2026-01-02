@@ -61,9 +61,9 @@ class PatientRepo {
 
     final q = (filters.searchText ?? '').trim();
     if (q.isNotEmpty) {
-      // Search across names, phone, id (as text)
+      // Search across names, phone, patient number (as text)
       whereParts.add('('
-          'CAST(id AS TEXT) LIKE ? OR '
+          'CAST(patient_number AS TEXT) LIKE ? OR '
           'COALESCE(first_name,\'\') LIKE ? OR '
           'COALESCE(father_name,\'\') LIKE ? OR '
           'COALESCE(last_name,\'\') LIKE ? OR '
@@ -125,7 +125,11 @@ class PatientRepo {
 
     switch (field) {
       case SortField.id:
-        return 'id $d';
+        if (dir == SortDir.asc) {
+          return 'patient_number IS NULL, patient_number ASC, id ASC';
+        } else {
+          return 'patient_number IS NOT NULL, patient_number DESC, id DESC';
+        }
 
       case SortField.firstName:
         return _textOrder('first_name', dir);
@@ -188,6 +192,28 @@ class PatientRepo {
         "WHERE name = 'patients'",
       );
     });
+  }
+
+  Future<int> nextPatientNumber() async {
+    final db = await AppDb.instance.db;
+    final rows = await db.rawQuery('SELECT MAX(patient_number) AS m FROM patients');
+    final maxVal = rows.first['m'] as int?;
+    return (maxVal ?? -1) + 1;
+  }
+
+  Future<bool> isPatientNumberAvailable(int? number, {int? excludeId}) async {
+    if (number == null) return true;
+    final db = await AppDb.instance.db;
+    final rows = await db.query(
+      'patients',
+      columns: ['id'],
+      where: excludeId == null
+          ? 'patient_number = ?'
+          : 'patient_number = ? AND id <> ?',
+      whereArgs: excludeId == null ? [number] : [number, excludeId],
+      limit: 1,
+    );
+    return rows.isEmpty;
   }
 
   Future<Patient?> getById(int id) async {

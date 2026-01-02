@@ -8,14 +8,18 @@ class PatientFormResult {
 }
 
 class PatientFormDialog extends StatefulWidget {
-  const PatientFormDialog({super.key, this.existing});
+  const PatientFormDialog({super.key, this.existing, required this.defaultPatientNumber});
   final Patient? existing;
+  final int? defaultPatientNumber;
 
   @override
   State<PatientFormDialog> createState() => _PatientFormDialogState();
 }
 
 class _PatientFormDialogState extends State<PatientFormDialog> {
+  late final _numberCtrl = TextEditingController(
+    text: (widget.existing?.patientNumber ?? widget.defaultPatientNumber)?.toString() ?? '',
+  );
   late final _firstCtrl = TextEditingController(text: widget.existing?.firstName ?? '');
   late final _fatherCtrl = TextEditingController(text: widget.existing?.fatherName ?? '');
   late final _lastCtrl = TextEditingController(text: widget.existing?.lastName ?? '');
@@ -24,6 +28,7 @@ class _PatientFormDialogState extends State<PatientFormDialog> {
   late final _notesCtrl = TextEditingController(text: widget.existing?.notes ?? '');
 
   DateTime? _lastVisited;
+  String? _numberError;
 
   @override
   void initState() {
@@ -34,6 +39,7 @@ class _PatientFormDialogState extends State<PatientFormDialog> {
 
   @override
   void dispose() {
+    _numberCtrl.dispose();
     _firstCtrl.dispose();
     _fatherCtrl.dispose();
     _lastCtrl.dispose();
@@ -49,6 +55,12 @@ class _PatientFormDialogState extends State<PatientFormDialog> {
   }
 
   int? _parseYear(String s) {
+    final t = s.trim();
+    if (t.isEmpty) return null;
+    return int.tryParse(t);
+  }
+
+  int? _parsePatientNumber(String s) {
     final t = s.trim();
     if (t.isEmpty) return null;
     return int.tryParse(t);
@@ -84,6 +96,19 @@ class _PatientFormDialogState extends State<PatientFormDialog> {
             children: [
               Row(
                 children: [
+                  Expanded(
+                    child: _field(
+                      _numberCtrl,
+                      'Patient number (ID)',
+                      keyboard: TextInputType.number,
+                      errorText: _numberError,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              Row(
+                children: [
                   Expanded(child: _field(_firstCtrl, 'First name')),
                   const SizedBox(width: 10),
                   Expanded(child: _field(_fatherCtrl, "Father's name")),
@@ -116,7 +141,7 @@ class _PatientFormDialogState extends State<PatientFormDialog> {
               Align(
                 alignment: Alignment.centerLeft,
                 child: Text(
-                  'All fields are optional.',
+                  'Patient number is optional; all other fields are optional.',
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
               ),
@@ -128,8 +153,15 @@ class _PatientFormDialogState extends State<PatientFormDialog> {
         TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
         FilledButton(
           onPressed: () {
+            final number = _parsePatientNumber(_numberCtrl.text);
+            if (number != null && number < 0) {
+              setState(() => _numberError = 'Enter an integer ≥ 0, or leave blank');
+              return;
+            }
+            setState(() => _numberError = null);
             final p = Patient(
               id: widget.existing?.id ?? 0,
+              patientNumber: number,
               firstName: _nullIfEmpty(_firstCtrl.text),
               fatherName: _nullIfEmpty(_fatherCtrl.text),
               lastName: _nullIfEmpty(_lastCtrl.text),
@@ -146,13 +178,19 @@ class _PatientFormDialogState extends State<PatientFormDialog> {
     );
   }
 
-  Widget _field(TextEditingController c, String label, {TextInputType? keyboard}) {
+  Widget _field(
+    TextEditingController c,
+    String label, {
+    TextInputType? keyboard,
+    String? errorText,
+  }) {
     return TextField(
       controller: c,
       keyboardType: keyboard,
       decoration: InputDecoration(
         labelText: label,
         border: const OutlineInputBorder(),
+        errorText: errorText,
       ),
     );
   }

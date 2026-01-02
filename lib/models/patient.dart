@@ -1,6 +1,7 @@
 class Patient {
   Patient({
     required this.id,
+    this.patientNumber,
     this.firstName,
     this.fatherName,
     this.lastName,
@@ -11,6 +12,7 @@ class Patient {
   });
 
   final int id;
+  final int? patientNumber;
   final String? firstName;
   final String? fatherName;
   final String? lastName;
@@ -29,6 +31,7 @@ class Patient {
 
   Patient copyWith({
     int? id,
+    int? patientNumber,
     String? firstName,
     String? fatherName,
     String? lastName,
@@ -39,6 +42,7 @@ class Patient {
   }) {
     return Patient(
       id: id ?? this.id,
+      patientNumber: patientNumber ?? this.patientNumber,
       firstName: firstName ?? this.firstName,
       fatherName: fatherName ?? this.fatherName,
       lastName: lastName ?? this.lastName,
@@ -51,6 +55,7 @@ class Patient {
 
   Map<String, Object?> toMap({bool includeId = false}) {
     final map = <String, Object?>{
+      'patient_number': patientNumber,
       'first_name': firstName,
       'father_name': fatherName,
       'last_name': lastName,
@@ -66,6 +71,7 @@ class Patient {
   static Patient fromMap(Map<String, Object?> m) {
     return Patient(
       id: (m['id'] as int),
+      patientNumber: m['patient_number'] as int?,
       firstName: m['first_name'] as String?,
       fatherName: m['father_name'] as String?,
       lastName: m['last_name'] as String?,
