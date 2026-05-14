@@ -3,7 +3,7 @@
 A local-only desktop app to store a simple patient list using **Flutter + SQLite**.
 Works offline. Includes **search, sort, filters, add/edit/delete**, and **Export/Import DB**.
 
-![Demo](demo.jpg)
+![Demo](demo.png)
 
 ## 0) Prerequisites (macOS)
 - Flutter installed and working: `flutter --version`
